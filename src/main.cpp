@@ -2,8 +2,10 @@
 #include <SPI.h>
 #include <hardware/watchdog.h>
 #include <mbed.h>
+#if defined(APOGEE_ROLE_TELEMETRY)
 #include <RadioLib.h>
 #include <SD.h>
+#endif
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
@@ -58,8 +60,10 @@ const uint8_t INTER_RP_PACKET_MAGIC = 0xa7;
 
 arduino::MbedSPI sensorSPI(SENSOR_SPI_MISO_PIN, SENSOR_SPI_MOSI_PIN, SENSOR_SPI_SCK_PIN);
 SPISettings sensor_spi(8000000, MSBFIRST, SPI_MODE0);
+#if defined(APOGEE_ROLE_TELEMETRY)
 File flightLog;
 SX1276 loraRadio = new Module(LORA_RADIO_CS_PIN, LORA_RADIO_DIO0_PIN, LORA_RADIO_RESET_PIN, RADIOLIB_NC);
+#endif
 bool sdCardReady = false;
 bool loraReady = false;
 bool flashReady = false;
@@ -89,6 +93,7 @@ static uint8_t packetChecksum(const FlightStatePacket &packet) {
   return checksum;
 }
 
+#if defined(APOGEE_ROLE_TELEMETRY)
 static uint32_t readW25q16JedecId() {
   uint8_t id[3];
   sensorSPI.beginTransaction(sensor_spi);
@@ -412,7 +417,9 @@ float latestPressurePa = NAN;
 uint8_t highAltitudeSamples = 0;
 bool highAltitudeMosfetsActive = false;
 
+#if defined(APOGEE_ROLE_TELEMETRY)
 static void publishRemoteTelemetry(const FlightStatePacket &packet);
+#endif
 
 static void sendFlightState(uint32_t nowMs, float pressure) {
   FlightStatePacket packet = {INTER_RP_PACKET_MAGIC, 1, interRpSequence++, nowMs,
@@ -446,6 +453,7 @@ static bool receiveFlightState(FlightStatePacket &packet) {
   return false;
 }
 
+#if defined(APOGEE_ROLE_TELEMETRY)
 static void initializeStorageAndTelemetry() {
   pinMode(SD_CARD_CS_PIN, OUTPUT);
   pinMode(LORA_RADIO_CS_PIN, OUTPUT);
@@ -476,6 +484,7 @@ static void initializeStorageAndTelemetry() {
   loraReady = radioState == RADIOLIB_ERR_NONE;
   if (!loraReady) Serial.println("RFM95W telemetry unavailable");
 }
+#endif
 
 static bool validVector(const Vector3 &value) {
   return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
@@ -712,6 +721,7 @@ void loop() {
 }
 #endif
 
+#if defined(APOGEE_ROLE_TELEMETRY)
 static void publishRemoteTelemetry(const FlightStatePacket &packet) {
   char record[160];
   int recordLength = snprintf(record, sizeof(record), "%lu,%.3f,%.3f,%.5f,%.5f,%.2f,%02X",
@@ -732,3 +742,5 @@ static void publishRemoteTelemetry(const FlightStatePacket &packet) {
     lastRadioTransmissionMs = packet.timestampMs;
   }
 }
+#endif
+#endif
