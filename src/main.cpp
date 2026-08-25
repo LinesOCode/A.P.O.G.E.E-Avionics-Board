@@ -3,17 +3,21 @@
 #include <hardware/watchdog.h>
 #include <mbed.h>
 #include <RadioLib.h>
-#include <SdFat.h>
+#include <SD.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 
+#if !defined(APOGEE_ROLE_FLIGHT_COMPUTER) && !defined(APOGEE_ROLE_FLIGHT_CONTROL) && !defined(APOGEE_ROLE_TELEMETRY)
+#define APOGEE_ROLE_FLIGHT_COMPUTER
+#endif
+
 // ========================== PIN ASSIGNMENTS ================================
 // All four sensors share this SPI bus. Only one CS line may be low at a time.
 // Keep board wiring changes in this block.
-const uint8_t SPI_SCK_PIN = 18;
-const uint8_t SPI_MOSI_PIN = 19;
-const uint8_t SPI_MISO_PIN = 16;
+const uint8_t SENSOR_SPI_SCK_PIN = 18;
+const uint8_t SENSOR_SPI_MOSI_PIN = 19;
+const uint8_t SENSOR_SPI_MISO_PIN = 16;
 const uint8_t BARO_SENSOR_CS = 5;  // Goertek SPL07-003 barometer
 const uint8_t IMU_SENSOR_CS = 6;   // ST LSM6DS3TR accelerometer + gyro
 const uint8_t ACCEL_SENSOR_CS = 7; // ST LIS2DH12TR accelerometer
@@ -35,6 +39,8 @@ const uint8_t LORA_RADIO_CS_PIN = 28;    // HopeRF RFM95W-915S2 NSS
 const uint8_t LORA_RADIO_RESET_PIN = 1;
 const uint8_t LORA_RADIO_DIO0_PIN = 0;
 const uint8_t W25Q16_FLASH_CS_PIN = 3;   // Winbond W25Q16JVSSIQ, 16 Mbit
+const uint8_t INTER_RP_UART_TX_PIN = 4;
+const uint8_t INTER_RP_UART_RX_PIN = 5;
 const float high_altitude_threshold_m = 1000.0f;
 const float high_altitude_reset_m = 950.0f;
 const uint8_t high_altitude_confirmations = 8;
@@ -47,17 +53,41 @@ const float ATTITUDE_ACCEL_CORRECTION = 0.02f;
 const uint32_t BAROMETER_SAMPLE_PERIOD_MS = 62;
 const uint32_t TELEMETRY_PERIOD_MS = 50;
 const uint32_t SD_FLUSH_PERIOD_MS = 1000;
+const uint32_t INTER_RP_PACKET_TIMEOUT_MS = 100;
+const uint8_t INTER_RP_PACKET_MAGIC = 0xa7;
 
-arduino::MbedSPI sensorSPI(SPI_MISO_PIN, SPI_MOSI_PIN, SPI_SCK_PIN);
+arduino::MbedSPI sensorSPI(SENSOR_SPI_MISO_PIN, SENSOR_SPI_MOSI_PIN, SENSOR_SPI_SCK_PIN);
 SPISettings sensor_spi(8000000, MSBFIRST, SPI_MODE0);
-SdFat sdCard;
-FsFile flightLog;
+File flightLog;
 SX1276 loraRadio = new Module(LORA_RADIO_CS_PIN, LORA_RADIO_DIO0_PIN, LORA_RADIO_RESET_PIN, RADIOLIB_NC);
 bool sdCardReady = false;
 bool loraReady = false;
 bool flashReady = false;
 uint32_t flashJedecId = 0;
 uint32_t lastSdFlushMs = 0;
+uint32_t lastInterRpPacketMs = 0;
+uint16_t interRpSequence = 0;
+
+struct FlightStatePacket {
+  uint8_t magic;
+  uint8_t version;
+  uint16_t sequence;
+  uint32_t timestampMs;
+  float altitudeM;
+  float velocityMps;
+  float rollRad;
+  float pitchRad;
+  float pressurePa;
+  uint8_t sensorHealthMask;
+  uint8_t checksum;
+};
+
+static uint8_t packetChecksum(const FlightStatePacket &packet) {
+  const uint8_t *bytes = reinterpret_cast<const uint8_t *>(&packet);
+  uint8_t checksum = 0;
+  for (size_t index = 0; index < sizeof(packet) - 1; ++index) checksum ^= bytes[index];
+  return checksum;
+}
 
 static uint32_t readW25q16JedecId() {
   uint8_t id[3];
@@ -382,6 +412,40 @@ float latestPressurePa = NAN;
 uint8_t highAltitudeSamples = 0;
 bool highAltitudeMosfetsActive = false;
 
+static void publishRemoteTelemetry(const FlightStatePacket &packet);
+
+static void sendFlightState(uint32_t nowMs, float pressure) {
+  FlightStatePacket packet = {INTER_RP_PACKET_MAGIC, 1, interRpSequence++, nowMs,
+                              altitudeFilter.altitude(), altitudeFilter.velocity(),
+                              rollEstimate, pitchEstimate, pressure, 0, 0};
+  if (sensorHealthy[SENSOR_SPL07]) packet.sensorHealthMask |= 1;
+  if (sensorHealthy[SENSOR_LSM6]) packet.sensorHealthMask |= 2;
+  if (sensorHealthy[SENSOR_LIS2DH]) packet.sensorHealthMask |= 4;
+  if (sensorHealthy[SENSOR_A3G4250]) packet.sensorHealthMask |= 8;
+  packet.checksum = packetChecksum(packet);
+  Serial1.write(reinterpret_cast<const uint8_t *>(&packet), sizeof(packet));
+}
+
+static bool receiveFlightState(FlightStatePacket &packet) {
+  static uint8_t buffer[sizeof(FlightStatePacket)];
+  static size_t received = 0;
+  while (Serial1.available() > 0) {
+    uint8_t value = static_cast<uint8_t>(Serial1.read());
+    if (received == 0 && value != INTER_RP_PACKET_MAGIC) continue;
+    buffer[received++] = value;
+    if (received == sizeof(buffer)) {
+      memcpy(&packet, buffer, sizeof(packet));
+      received = 0;
+      if (packet.version != 1 || packet.checksum != packetChecksum(packet) ||
+          !isfinite(packet.altitudeM) || !isfinite(packet.velocityMps) ||
+          !isfinite(packet.rollRad) || !isfinite(packet.pitchRad) ||
+          !isfinite(packet.pressurePa)) return false;
+      return true;
+    }
+  }
+  return false;
+}
+
 static void initializeStorageAndTelemetry() {
   pinMode(SD_CARD_CS_PIN, OUTPUT);
   pinMode(LORA_RADIO_CS_PIN, OUTPUT);
@@ -398,9 +462,10 @@ static void initializeStorageAndTelemetry() {
     Serial.println("W25Q16 not detected; RP2040 onboard XIP flash is unchanged");
   }
 
-  sdCardReady = sdCard.begin(SD_CARD_CS_PIN, SD_SCK_MHZ(25));
+  sdCardReady = SD.begin(SD_CARD_CS_PIN);
   if (sdCardReady) {
-    sdCardReady = flightLog.open("flight.csv", FILE_WRITE);
+    flightLog = SD.open("flight.csv", FILE_WRITE);
+    sdCardReady = static_cast<bool>(flightLog);
     if (sdCardReady && flightLog.size() == 0) {
       flightLog.println("time_ms,altitude_m,velocity_mps,roll_rad,pitch_rad,pressure_pa,flash_jedec");
     }
@@ -410,24 +475,6 @@ static void initializeStorageAndTelemetry() {
   int16_t radioState = loraRadio.begin(915.0, 125.0, 9, 5, 0x12, 17, 8, 0);
   loraReady = radioState == RADIOLIB_ERR_NONE;
   if (!loraReady) Serial.println("RFM95W telemetry unavailable");
-}
-
-static void publishTelemetry(uint32_t nowMs, float pressure, bool transmitRadio) {
-  char record[160];
-  int recordLength = snprintf(record, sizeof(record), "%lu,%.3f,%.3f,%.5f,%.5f,%.2f,%06lX",
-                              static_cast<unsigned long>(nowMs), altitudeFilter.altitude(),
-                              altitudeFilter.velocity(), rollEstimate, pitchEstimate, pressure,
-                              static_cast<unsigned long>(flashJedecId));
-  if (recordLength <= 0 || recordLength >= static_cast<int>(sizeof(record))) return;
-
-  if (sdCardReady) {
-    flightLog.println(record);
-    if (nowMs - lastSdFlushMs >= SD_FLUSH_PERIOD_MS) {
-      flightLog.flush();
-      lastSdFlushMs = nowMs;
-    }
-  }
-  if (transmitRadio && loraReady) loraRadio.transmit(record);
 }
 
 static bool validVector(const Vector3 &value) {
@@ -473,8 +520,10 @@ static void updateHighAltitudeOutputs(float altitude, bool pressureConfirmed) {
   }
 }
 
+#if defined(APOGEE_ROLE_FLIGHT_COMPUTER)
 void setup() {
   Serial.begin(115200);
+  Serial1.begin(1000000);
   pinMode(BARO_SENSOR_CS, OUTPUT);
   pinMode(IMU_SENSOR_CS, OUTPUT);
   pinMode(ACCEL_SENSOR_CS, OUTPUT);
@@ -500,7 +549,6 @@ void setup() {
   digitalWrite(MISC_MOSFET_GATE_PIN, LOW);
   finController.begin();
   sensorSPI.begin();
-  initializeStorageAndTelemetry();
 
   if (!spl07.begin() || !configureLsm6() || !configureLis2dh() || !configureA3g4250()) {
     Serial.println("Sensor identification failed");
@@ -603,11 +651,84 @@ void loop() {
     }
   }
   updateHighAltitudeOutputs(altitudeFilter.altitude(), pressureConfirmed);
-  publishTelemetry(nowMillis, latestPressurePa, nowMillis - lastTelemetryMs >= TELEMETRY_PERIOD_MS);
+  sendFlightState(nowMillis, latestPressurePa);
   if (nowMillis - lastTelemetryMs >= TELEMETRY_PERIOD_MS) {
     lastTelemetryMs = nowMillis;
     Serial.print(altitudeFilter.altitude(), 3);
     Serial.print(',');
     Serial.println(altitudeFilter.velocity(), 3);
+  }
+}
+#elif defined(APOGEE_ROLE_FLIGHT_CONTROL)
+void setup() {
+  Serial.begin(115200);
+  Serial1.begin(1000000);
+  pinMode(MOSFET_ARM_INPUT_PIN, INPUT_PULLDOWN);
+  pinMode(FIN_1_POWER_GATE_PIN, OUTPUT);
+  pinMode(FIN_2_POWER_GATE_PIN, OUTPUT);
+  pinMode(FIN_3_POWER_GATE_PIN, OUTPUT);
+  pinMode(FIN_4_POWER_GATE_PIN, OUTPUT);
+  digitalWrite(FIN_1_POWER_GATE_PIN, LOW);
+  digitalWrite(FIN_2_POWER_GATE_PIN, LOW);
+  digitalWrite(FIN_3_POWER_GATE_PIN, LOW);
+  digitalWrite(FIN_4_POWER_GATE_PIN, LOW);
+  finController.begin();
+  watchdog_enable(2000, true);
+}
+
+void loop() {
+  watchdog_update();
+  FlightStatePacket packet;
+  if (receiveFlightState(packet)) {
+    lastInterRpPacketMs = millis();
+    bool packetHealthy = (packet.sensorHealthMask & 0x0e) == 0x0e;
+    bool armed = FIN_CONTROL_ENABLED && packetHealthy &&
+                 digitalRead(MOSFET_ARM_INPUT_PIN) == HIGH;
+    finController.correct(packet.rollRad, packet.pitchRad, armed);
+  }
+  if (millis() - lastInterRpPacketMs > INTER_RP_PACKET_TIMEOUT_MS) {
+    finController.disable();
+  }
+}
+#else
+void setup() {
+  Serial.begin(115200);
+  Serial1.begin(1000000);
+  sensorSPI.begin();
+  pinMode(SD_CARD_CS_PIN, OUTPUT);
+  pinMode(LORA_RADIO_CS_PIN, OUTPUT);
+  pinMode(W25Q16_FLASH_CS_PIN, OUTPUT);
+  digitalWrite(SD_CARD_CS_PIN, HIGH);
+  digitalWrite(LORA_RADIO_CS_PIN, HIGH);
+  digitalWrite(W25Q16_FLASH_CS_PIN, HIGH);
+  initializeStorageAndTelemetry();
+  watchdog_enable(2000, true);
+}
+
+void loop() {
+  watchdog_update();
+  FlightStatePacket packet;
+  while (receiveFlightState(packet)) publishRemoteTelemetry(packet);
+}
+#endif
+
+static void publishRemoteTelemetry(const FlightStatePacket &packet) {
+  char record[160];
+  int recordLength = snprintf(record, sizeof(record), "%lu,%.3f,%.3f,%.5f,%.5f,%.2f,%02X",
+                              static_cast<unsigned long>(packet.timestampMs), packet.altitudeM,
+                              packet.velocityMps, packet.rollRad, packet.pitchRad,
+                              packet.pressurePa, packet.sensorHealthMask);
+  if (recordLength <= 0 || recordLength >= static_cast<int>(sizeof(record))) return;
+  if (sdCardReady) {
+    flightLog.println(record);
+    if (packet.timestampMs - lastSdFlushMs >= SD_FLUSH_PERIOD_MS) {
+      flightLog.flush();
+      lastSdFlushMs = packet.timestampMs;
+    }
+  }
+  static uint32_t lastRadioTransmissionMs = 0;
+  if (loraReady && packet.timestampMs - lastRadioTransmissionMs >= TELEMETRY_PERIOD_MS) {
+    loraRadio.transmit(record);
+    lastRadioTransmissionMs = packet.timestampMs;
   }
 }
