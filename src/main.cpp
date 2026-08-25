@@ -2,8 +2,11 @@
 #include <SPI.h>
 #include <hardware/watchdog.h>
 #include <mbed.h>
+#include <RadioLib.h>
+#include <SdFat.h>
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 // ========================== PIN ASSIGNMENTS ================================
 // All four sensors share this SPI bus. Only one CS line may be low at a time.
@@ -27,6 +30,11 @@ const uint8_t FIN_2_SERVO_SIGNAL_PIN = 22;
 const uint8_t FIN_3_SERVO_SIGNAL_PIN = 23;
 const uint8_t FIN_4_SERVO_SIGNAL_PIN = 24;
 const uint8_t MISC_MOSFET_GATE_PIN = 25;
+const uint8_t SD_CARD_CS_PIN = 27;       // MicroSD card chip select
+const uint8_t LORA_RADIO_CS_PIN = 28;    // HopeRF RFM95W-915S2 NSS
+const uint8_t LORA_RADIO_RESET_PIN = 1;
+const uint8_t LORA_RADIO_DIO0_PIN = 0;
+const uint8_t W25Q16_FLASH_CS_PIN = 3;   // Winbond W25Q16JVSSIQ, 16 Mbit
 const float high_altitude_threshold_m = 1000.0f;
 const float high_altitude_reset_m = 950.0f;
 const uint8_t high_altitude_confirmations = 8;
@@ -35,11 +43,35 @@ const uint8_t sensor_recovery_limit = 3;
 const float max_fin_correction_deg = 12.0f;
 const float maximum_control_angle_deg = 45.0f;
 const bool FIN_CONTROL_ENABLED = false; // Explicitly enable only after restrained bench testing.
+const float ATTITUDE_ACCEL_CORRECTION = 0.02f;
 const uint32_t BAROMETER_SAMPLE_PERIOD_MS = 62;
 const uint32_t TELEMETRY_PERIOD_MS = 50;
+const uint32_t SD_FLUSH_PERIOD_MS = 1000;
 
 arduino::MbedSPI sensorSPI(SPI_MISO_PIN, SPI_MOSI_PIN, SPI_SCK_PIN);
 SPISettings sensor_spi(8000000, MSBFIRST, SPI_MODE0);
+SdFat sdCard;
+FsFile flightLog;
+SX1276 loraRadio = new Module(LORA_RADIO_CS_PIN, LORA_RADIO_DIO0_PIN, LORA_RADIO_RESET_PIN, RADIOLIB_NC);
+bool sdCardReady = false;
+bool loraReady = false;
+bool flashReady = false;
+uint32_t flashJedecId = 0;
+uint32_t lastSdFlushMs = 0;
+
+static uint32_t readW25q16JedecId() {
+  uint8_t id[3];
+  sensorSPI.beginTransaction(sensor_spi);
+  digitalWrite(W25Q16_FLASH_CS_PIN, LOW);
+  sensorSPI.transfer(0x9f);
+  id[0] = sensorSPI.transfer(0);
+  id[1] = sensorSPI.transfer(0);
+  id[2] = sensorSPI.transfer(0);
+  digitalWrite(W25Q16_FLASH_CS_PIN, HIGH);
+  sensorSPI.endTransaction();
+  return (static_cast<uint32_t>(id[0]) << 16) |
+         (static_cast<uint32_t>(id[1]) << 8) | id[2];
+}
 
 static uint8_t spiRead8(uint8_t chipSelect, uint8_t reg) {
   sensorSPI.beginTransaction(sensor_spi);
@@ -162,8 +194,15 @@ static Vector3 readA3g4250(uint8_t chipSelect) {
 
 class AltitudeKalman {
  public:
-  void reset(float altitude) { altitude_ = altitude; velocity_ = 0.0f; }
+  void reset(float altitude) {
+    altitude_ = altitude;
+    velocity_ = 0.0f;
+    p00_ = 1.0f;
+    p01_ = 0.0f;
+    p11_ = 1.0f;
+  }
   void predict(float acceleration, float dt) {
+    if (!isfinite(acceleration) || !isfinite(dt) || dt <= 0.0f || dt > 0.1f) return;
     altitude_ += velocity_ * dt + 0.5f * acceleration * dt * dt;
     velocity_ += acceleration * dt;
     float p00 = p00_ + dt * (2.0f * p01_ + dt * p11_) + processAcceleration_ * dt * dt * dt * dt / 4.0f;
@@ -172,17 +211,26 @@ class AltitudeKalman {
     p00_ = p00;
     p01_ = p01;
     p11_ = p11;
+    if (!isfinite(altitude_) || !isfinite(velocity_) || !isfinite(p00_) ||
+        !isfinite(p01_) || !isfinite(p11_) || p00_ < 0.0f || p11_ < 0.0f) {
+      reset(0.0f);
+    }
   }
   void correct(float measuredAltitude) {
+    if (!isfinite(measuredAltitude) || !isfinite(altitude_) || !isfinite(p00_) ||
+        !isfinite(p01_) || !isfinite(p11_)) return;
     float innovation = measuredAltitude - altitude_;
     float covariance01 = p01_;
-    float gainAltitude = p00_ / (p00_ + measurementVariance_);
-    float gainVelocity = p01_ / (p00_ + measurementVariance_);
+    float innovationVariance = p00_ + measurementVariance_;
+    if (innovationVariance <= 0.0f || !isfinite(innovationVariance)) return;
+    float gainAltitude = p00_ / innovationVariance;
+    float gainVelocity = p01_ / innovationVariance;
     altitude_ += gainAltitude * innovation;
     velocity_ += gainVelocity * innovation;
     p00_ = (1.0f - gainAltitude) * p00_;
     p01_ = (1.0f - gainAltitude) * covariance01;
     p11_ = p11_ - gainVelocity * covariance01;
+    if (!isfinite(altitude_) || !isfinite(velocity_) || p00_ < 0.0f || p11_ < 0.0f) reset(0.0f);
   }
   void update(float acceleration, float measuredAltitude, float dt) {
     predict(acceleration, dt);
@@ -324,12 +372,63 @@ static void sensorHealthCheck(uint32_t now) {
 Spl07 spl07(BARO_SENSOR_CS);
 AltitudeKalman altitudeFilter;
 FinController finController;
+float rollEstimate = 0.0f;
+float pitchEstimate = 0.0f;
 uint32_t lastUpdateMicros;
 uint32_t lastBarometerSampleMs = 0;
 uint32_t lastTelemetryMs = 0;
 float referencePressurePa;
+float latestPressurePa = NAN;
 uint8_t highAltitudeSamples = 0;
 bool highAltitudeMosfetsActive = false;
+
+static void initializeStorageAndTelemetry() {
+  pinMode(SD_CARD_CS_PIN, OUTPUT);
+  pinMode(LORA_RADIO_CS_PIN, OUTPUT);
+  pinMode(W25Q16_FLASH_CS_PIN, OUTPUT);
+  digitalWrite(SD_CARD_CS_PIN, HIGH);
+  digitalWrite(LORA_RADIO_CS_PIN, HIGH);
+  digitalWrite(W25Q16_FLASH_CS_PIN, HIGH);
+
+  flashJedecId = readW25q16JedecId();
+  flashReady = flashJedecId == 0xef4015UL;
+  if (flashReady) {
+    Serial.println("W25Q16 detected: 16 Mbit external SPI/QSPI-capable flash");
+  } else {
+    Serial.println("W25Q16 not detected; RP2040 onboard XIP flash is unchanged");
+  }
+
+  sdCardReady = sdCard.begin(SD_CARD_CS_PIN, SD_SCK_MHZ(25));
+  if (sdCardReady) {
+    sdCardReady = flightLog.open("flight.csv", FILE_WRITE);
+    if (sdCardReady && flightLog.size() == 0) {
+      flightLog.println("time_ms,altitude_m,velocity_mps,roll_rad,pitch_rad,pressure_pa,flash_jedec");
+    }
+  }
+  if (!sdCardReady) Serial.println("MicroSD logging unavailable");
+
+  int16_t radioState = loraRadio.begin(915.0, 125.0, 9, 5, 0x12, 17, 8, 0);
+  loraReady = radioState == RADIOLIB_ERR_NONE;
+  if (!loraReady) Serial.println("RFM95W telemetry unavailable");
+}
+
+static void publishTelemetry(uint32_t nowMs, float pressure, bool transmitRadio) {
+  char record[160];
+  int recordLength = snprintf(record, sizeof(record), "%lu,%.3f,%.3f,%.5f,%.5f,%.2f,%06lX",
+                              static_cast<unsigned long>(nowMs), altitudeFilter.altitude(),
+                              altitudeFilter.velocity(), rollEstimate, pitchEstimate, pressure,
+                              static_cast<unsigned long>(flashJedecId));
+  if (recordLength <= 0 || recordLength >= static_cast<int>(sizeof(record))) return;
+
+  if (sdCardReady) {
+    flightLog.println(record);
+    if (nowMs - lastSdFlushMs >= SD_FLUSH_PERIOD_MS) {
+      flightLog.flush();
+      lastSdFlushMs = nowMs;
+    }
+  }
+  if (transmitRadio && loraReady) loraRadio.transmit(record);
+}
 
 static bool validVector(const Vector3 &value) {
   return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
@@ -401,6 +500,7 @@ void setup() {
   digitalWrite(MISC_MOSFET_GATE_PIN, LOW);
   finController.begin();
   sensorSPI.begin();
+  initializeStorageAndTelemetry();
 
   if (!spl07.begin() || !configureLsm6() || !configureLis2dh() || !configureA3g4250()) {
     Serial.println("Sensor identification failed");
@@ -412,11 +512,14 @@ void setup() {
   sensorHealthy[SENSOR_A3G4250] = true;
   watchdog_enable(2000, true);
   referencePressurePa = spl07.pressurePa();
+  latestPressurePa = referencePressurePa;
   if (!isfinite(referencePressurePa) || referencePressurePa < 30000.0f || referencePressurePa > 120000.0f) {
     Serial.println("Invalid barometer reference");
     while (true) delay(1000);
   }
   altitudeFilter.reset(0.0f);
+  rollEstimate = 0.0f;
+  pitchEstimate = 0.0f;
   lastUpdateMicros = micros();
 }
 
@@ -454,8 +557,22 @@ void loop() {
   Vector3 gyro = lsmGyroUsable && externalGyroUsable
                      ? averageVector(lsm6.gyro, externalGyro)
                      : (lsmGyroUsable ? lsm6.gyro : (externalGyroUsable ? externalGyro : Vector3{0.0f, 0.0f, 0.0f}));
-  float roll = atan2f(acceleration.y, acceleration.z) + gyro.x * dt;
-  float pitch = atan2f(-acceleration.x, sqrtf(acceleration.y * acceleration.y + acceleration.z * acceleration.z)) + gyro.y * dt;
+  float measuredRoll = atan2f(acceleration.y, acceleration.z);
+  float measuredPitch = atan2f(-acceleration.x, sqrtf(acceleration.y * acceleration.y + acceleration.z * acceleration.z));
+  if (!isfinite(measuredRoll) || !isfinite(measuredPitch) || !isfinite(gyro.x) || !isfinite(gyro.y)) {
+    finController.disable();
+    return;
+  }
+  rollEstimate += gyro.x * dt;
+  pitchEstimate += gyro.y * dt;
+  rollEstimate += ATTITUDE_ACCEL_CORRECTION * (measuredRoll - rollEstimate);
+  pitchEstimate += ATTITUDE_ACCEL_CORRECTION * (measuredPitch - pitchEstimate);
+  if (!isfinite(rollEstimate) || !isfinite(pitchEstimate)) {
+    rollEstimate = measuredRoll;
+    pitchEstimate = measuredPitch;
+  }
+  float roll = rollEstimate;
+  float pitch = pitchEstimate;
   bool motionSensorsHealthy = sensorHealthy[SENSOR_LSM6] &&
                               sensorHealthy[SENSOR_LIS2DH] &&
                               sensorHealthy[SENSOR_A3G4250];
@@ -475,6 +592,7 @@ void loop() {
   if (nowMillis - lastBarometerSampleMs >= BAROMETER_SAMPLE_PERIOD_MS) {
     lastBarometerSampleMs = nowMillis;
     float pressure = spl07.pressurePa();
+    latestPressurePa = pressure;
     bool pressureUsable = isfinite(pressure) && pressure > 30000.0f && pressure < 120000.0f;
     if (pressureUsable) {
       float pressureAltitude = 44330.0f * (1.0f - powf(pressure / referencePressurePa, 0.19029495f));
@@ -485,6 +603,7 @@ void loop() {
     }
   }
   updateHighAltitudeOutputs(altitudeFilter.altitude(), pressureConfirmed);
+  publishTelemetry(nowMillis, latestPressurePa, nowMillis - lastTelemetryMs >= TELEMETRY_PERIOD_MS);
   if (nowMillis - lastTelemetryMs >= TELEMETRY_PERIOD_MS) {
     lastTelemetryMs = nowMillis;
     Serial.print(altitudeFilter.altitude(), 3);
