@@ -14,15 +14,20 @@
 // ========================== PIN ASSIGNMENTS ================================
 // All four sensors share this SPI bus. Only one CS line may be low at a time.
 // Keep board wiring changes in this block.
-const uint8_t SENSOR_SPI_SCK_PIN = 18;
-const uint8_t SENSOR_SPI_MOSI_PIN = 19;
-const uint8_t SENSOR_SPI_MISO_PIN = 16;
+// Sensor bus: RP2040 SPI1 alternate pins.
+const uint8_t SENSOR_SPI_SCK_PIN = 10;
+const uint8_t SENSOR_SPI_MOSI_PIN = 11;
+const uint8_t SENSOR_SPI_MISO_PIN = 8;
+// Storage/radio bus: Arduino global SPI0 pins, separate from all sensors.
+const uint8_t STORAGE_SPI_SCK_PIN = 18;
+const uint8_t STORAGE_SPI_MOSI_PIN = 19;
+const uint8_t STORAGE_SPI_MISO_PIN = 16;
 const uint8_t BARO_SENSOR_CS = 5;  // Goertek SPL07-003 barometer
 const uint8_t IMU_SENSOR_CS = 6;   // ST LSM6DS3TR accelerometer + gyro
 const uint8_t ACCEL_SENSOR_CS = 7; // ST LIS2DH12TR accelerometer
 const uint8_t GYRO_SENSOR_CS = 2;  // ST A3G4250DTR gyro
 const uint8_t MOSFET_ARM_INPUT_PIN = 12;
-const uint8_t DROGUE_PARACHUTE_GATE_PIN = 8;
+const uint8_t DROGUE_PARACHUTE_GATE_PIN = 26;
 const uint8_t MAIN_PARACHUTE_GATE_PIN = 9;
 const uint8_t FIN_1_POWER_GATE_PIN = 13;
 const uint8_t FIN_2_POWER_GATE_PIN = 14;
@@ -33,8 +38,8 @@ const uint8_t FIN_2_SERVO_SIGNAL_PIN = 22;
 const uint8_t FIN_3_SERVO_SIGNAL_PIN = 23;
 const uint8_t FIN_4_SERVO_SIGNAL_PIN = 24;
 const uint8_t MISC_MOSFET_GATE_PIN = 25;
-const uint8_t SD_CARD_CS_PIN = 27;       // MicroSD card chip select
-const uint8_t LORA_RADIO_CS_PIN = 28;    // HopeRF RFM95W-915S2 NSS
+const uint8_t SD_CARD_CS_PIN = 27;       // MicroSD card chip select, storage SPI0
+const uint8_t LORA_RADIO_CS_PIN = 28;    // HopeRF RFM95W-915S2 NSS, storage SPI0
 const uint8_t LORA_RADIO_RESET_PIN = 1;
 const uint8_t LORA_RADIO_DIO0_PIN = 0;
 const uint8_t W25Q16_FLASH_CS_PIN = 3;   // Winbond W25Q16JVSSIQ, 16 Mbit
@@ -54,8 +59,10 @@ const uint8_t INTER_RP_PACKET_MAGIC = 0xa7;
 
 arduino::MbedSPI sensorSPI(SENSOR_SPI_MISO_PIN, SENSOR_SPI_MOSI_PIN, SENSOR_SPI_SCK_PIN);
 SPISettings sensor_spi(8000000, MSBFIRST, SPI_MODE0);
+SPISettings storage_spi(25000000, MSBFIRST, SPI_MODE0);
 File flightLog;
-SX1276 loraRadio = new Module(LORA_RADIO_CS_PIN, LORA_RADIO_DIO0_PIN, LORA_RADIO_RESET_PIN, RADIOLIB_NC);
+SX1276 loraRadio = new Module(LORA_RADIO_CS_PIN, LORA_RADIO_DIO0_PIN, LORA_RADIO_RESET_PIN,
+                              RADIOLIB_NC, SPI, SPISettings(8000000, MSBFIRST, SPI_MODE0));
 bool sdCardReady = false;
 bool loraReady = false;
 bool flashReady = false;
@@ -93,17 +100,29 @@ static uint8_t packetChecksum(const FlightStatePacket &packet) {
 static uint32_t readW25q16JedecId() {
   uint8_t id[3];
   uint32_t irqState = spin_lock_blocking(peripheralLock);
-  sensorSPI.beginTransaction(sensor_spi);
+  SPI.beginTransaction(storage_spi);
   digitalWrite(W25Q16_FLASH_CS_PIN, LOW);
-  sensorSPI.transfer(0x9f);
-  id[0] = sensorSPI.transfer(0);
-  id[1] = sensorSPI.transfer(0);
-  id[2] = sensorSPI.transfer(0);
+  SPI.transfer(0x9f);
+  id[0] = SPI.transfer(0);
+  id[1] = SPI.transfer(0);
+  id[2] = SPI.transfer(0);
   digitalWrite(W25Q16_FLASH_CS_PIN, HIGH);
-  sensorSPI.endTransaction();
+  SPI.endTransaction();
   spin_unlock(peripheralLock, irqState);
   return (static_cast<uint32_t>(id[0]) << 16) |
          (static_cast<uint32_t>(id[1]) << 8) | id[2];
+}
+
+static void initializeExternalMemory() {
+  pinMode(W25Q16_FLASH_CS_PIN, OUTPUT);
+  digitalWrite(W25Q16_FLASH_CS_PIN, HIGH);
+  flashJedecId = readW25q16JedecId();
+  flashReady = flashJedecId == 0xef4015UL;
+  if (flashReady) {
+    Serial.println("W25Q16 detected on core 0: external 16 Mbit SPI/QSPI flash");
+  } else {
+    Serial.println("W25Q16 not detected; RP2040 onboard XIP flash is unchanged");
+  }
 }
 
 static uint8_t spiRead8(uint8_t chipSelect, uint8_t reg) {
@@ -441,21 +460,11 @@ static void sendFlightState(uint32_t nowMs, float pressure) {
 static void initializeStorageAndTelemetry() {
   pinMode(SD_CARD_CS_PIN, OUTPUT);
   pinMode(LORA_RADIO_CS_PIN, OUTPUT);
-  pinMode(W25Q16_FLASH_CS_PIN, OUTPUT);
   digitalWrite(SD_CARD_CS_PIN, HIGH);
   digitalWrite(LORA_RADIO_CS_PIN, HIGH);
-  digitalWrite(W25Q16_FLASH_CS_PIN, HIGH);
-
-  flashJedecId = readW25q16JedecId();
-  flashReady = flashJedecId == 0xef4015UL;
-  if (flashReady) {
-    Serial.println("W25Q16 detected: 16 Mbit external SPI/QSPI-capable flash");
-  } else {
-    Serial.println("W25Q16 not detected; RP2040 onboard XIP flash is unchanged");
-  }
 
   uint32_t irqState = spin_lock_blocking(peripheralLock);
-  sdCardReady = SD.begin(SD_CARD_CS_PIN);
+  sdCardReady = SD.begin(25000000UL, SD_CARD_CS_PIN);
   if (sdCardReady) {
     flightLog = SD.open("flight.csv", FILE_WRITE);
     sdCardReady = static_cast<bool>(flightLog);
@@ -561,8 +570,10 @@ void setup() {
   digitalWrite(MISC_MOSFET_GATE_PIN, LOW);
   finController.begin();
   sensorSPI.begin();
+  SPI.begin();
   telemetryLock = spin_lock_init(spin_lock_claim_unused(true));
   peripheralLock = spin_lock_init(spin_lock_claim_unused(true));
+  initializeExternalMemory();
 
   if (!spl07.begin() || !configureLsm6() || !configureLis2dh() || !configureA3g4250()) {
     Serial.println("Sensor identification failed");
