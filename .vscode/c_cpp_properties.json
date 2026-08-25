@@ -10,8 +10,6 @@
             "includePath": [
                 "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/include",
                 "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/src",
-                "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/.pio/libdeps/pico/RadioLib/src",
-                "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/.pio/libdeps/pico/SD/src",
                 "C:/Users/maahi/.platformio/packages/framework-arduino-mbed/libraries/SPI",
                 "C:/Users/maahi/.platformio/packages/framework-arduino-mbed/cores/arduino",
                 "C:/Users/maahi/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
@@ -64,8 +62,6 @@
                 "path": [
                     "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/include",
                     "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/src",
-                    "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/.pio/libdeps/pico/RadioLib/src",
-                    "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/.pio/libdeps/pico/SD/src",
                     "C:/Users/maahi/.platformio/packages/framework-arduino-mbed/libraries/SPI",
                     "C:/Users/maahi/.platformio/packages/framework-arduino-mbed/cores/arduino",
                     "C:/Users/maahi/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
