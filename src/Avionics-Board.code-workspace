@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "Avionics-Board",
+			"path": "../../../Documents/PlatformIO/Projects/Avionics-Board"
+		}
+	],
+	"settings": {}
+}
