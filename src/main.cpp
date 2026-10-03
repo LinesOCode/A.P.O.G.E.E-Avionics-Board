@@ -11,6 +11,15 @@
 #include <string.h>
 #include <stdio.h>
 
+
+// ========================== Deadlock Safety ================================
+
+spin_lock_t *telemetryLock;   // Remains purely for the Core0 -> Core1 FIFO snapshot packet
+spin_lock_t *sensorBusLock;   // ONLY if multiple tasks on Core 0 need to share sensorSPI
+spin_lock_t *storageBusLock;  // ONLY if multiple tasks on Core 1 need to share the standard SPI
+
+
+
 // ========================== PIN ASSIGNMENTS ================================
 // All four sensors share this SPI bus. Only one CS line may be low at a time.
 // Keep board wiring changes in this block.
