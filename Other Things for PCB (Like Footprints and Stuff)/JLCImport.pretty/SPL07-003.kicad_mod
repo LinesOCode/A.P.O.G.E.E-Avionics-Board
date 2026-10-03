@@ -1,0 +1,242 @@
+(footprint "SPL07-003"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "-40℃~+85℃ 0.03hpa 0.3hpa 0.5pa/K 1.7V~3.6V 30Kpa~1.1bar 500nA I2C、SPI Integrated ADC and digital interface、Standby mode、On-chip temperature output SMD-10P Pressure Sensors ROHS")
+	(tags "C3253727 Goertek LGA-10_L2.0-W2.0-P0.50-BL SPL07-003")
+	(property "Reference" "REF**"
+		(at 0 -2.1 0)
+		(layer "F.SilkS")
+		(uuid "188cee35-7213-48d8-914f-0a3f261b3eab")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "~"
+		(at 0 2.1 0)
+		(layer "F.Fab")
+		(uuid "1f16e8eb-7bd9-48ee-9015-6d494b8814ae")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2404021605_Goertek-SPL07-003_C3253727.pdf"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "f9e907e0-0b7b-431f-b366-f0253e53ea11")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "-40℃~+85℃ 0.03hpa 0.3hpa 0.5pa/K 1.7V~3.6V 30Kpa~1.1bar 500nA I2C、SPI Integrated ADC and digital interface、Standby mode、On-chip temperature output SMD-10P Pressure Sensors ROHS"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "10c8e196-0301-4ac3-be60-81b531c455a9")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "LCSC" "C3253727"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "21875bd9-21e0-411d-bfa0-166430624e60")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -1.1 -1.1)
+		(end -1.1 -0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "f34a37bf-a158-4bb1-94b1-bacf781fe717")
+	)
+	(fp_line
+		(start -1.1 0.4)
+		(end -1.1 1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "7716bb7c-4466-42a7-aee0-7e2f643b89de")
+	)
+	(fp_line
+		(start -1.1 1.1)
+		(end -0.4 1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "fb68217a-cac2-431d-a741-038e6460ca8f")
+	)
+	(fp_line
+		(start -0.4 -1.1)
+		(end -1.1 -1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "d4c4e2d3-ef05-4a65-9866-593aee533917")
+	)
+	(fp_line
+		(start 0.4 -1.1)
+		(end 1.1 -1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "5ff32ea8-942a-481c-b5c4-8cba9d1e139f")
+	)
+	(fp_line
+		(start 0.4 1.1)
+		(end 1.1 1.1)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "c65140f2-9382-4553-902d-4e1f75b75aa7")
+	)
+	(fp_line
+		(start 1.1 -1.1)
+		(end 1.1 -0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "252a1ee0-ba3e-46a3-9552-313fa6f1e2eb")
+	)
+	(fp_line
+		(start 1.1 1.1)
+		(end 1.1 0.4)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "24402e95-4eeb-4001-add3-15ba398ed268")
+	)
+	(fp_circle
+		(center -0.682 1.26492)
+		(end -0.548132 1.26492)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "537a7069-9c0c-4a47-854f-7f83e46c9ff4")
+	)
+	(fp_circle
+		(center -0.261 1.03759)
+		(end -0.161 1.03759)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "a8447844-8131-44af-8137-b888be5f0cb0")
+	)
+	(pad "1" smd rect
+		(at -0.25 0.78 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "145fc9c5-48ac-40a5-b5ce-275ca88f9531")
+	)
+	(pad "2" smd rect
+		(at 0.25 0.78 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "40c30be0-ed71-44ee-850b-7282966254c0")
+	)
+	(pad "3" smd rect
+		(at 0.78 0.500126 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "a2a9ca90-f782-45ec-a564-d06fcd5a8971")
+	)
+	(pad "4" smd rect
+		(at 0.78 0 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "ef9af03f-a2b1-4f4f-a137-f2b19dae8ed7")
+	)
+	(pad "5" smd rect
+		(at 0.78 -0.499872 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "6738df74-898c-4325-a968-6c28a3cd7fa2")
+	)
+	(pad "6" smd rect
+		(at 0.25 -0.78 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "5c22a5c1-f357-44a4-a746-eb57f07622ad")
+	)
+	(pad "7" smd rect
+		(at -0.25 -0.78 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "63aa1bfe-d4ac-4ea4-977b-252ad33f5609")
+	)
+	(pad "8" smd rect
+		(at -0.78 -0.499872 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "3bf71770-3ebb-4cdc-847e-a6c040270f01")
+	)
+	(pad "9" smd rect
+		(at -0.78 0 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "5d39e800-2737-412c-a288-7223c95fe679")
+	)
+	(pad "10" smd rect
+		(at -0.78 0.500126 180)
+		(size 0.3 0.3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "5a5177cb-d545-410b-939e-89c9796849bb")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/JLCImport.3dshapes/SPL07-003.wrl"
+		(offset
+			(xyz 0 0 0.02)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

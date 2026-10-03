@@ -1,0 +1,43 @@
+Index,LCSC#,MPN,Manufacturer,Package,Customer #,Description,RoHS,Quantity,MOQ,Multiple,Unit Price($),Extended Price($),Product Link
+1,C107077,CC0603KRX7R9BB181,YAGEO,603,,180pF ±10% 50V Ceramic Capacitor X7R 0603,yes,50,50,50,0.0128,0.64,https://www.lcsc.com/product-detail/C107077.html
+2,C10811,CNY17F-2,LITEON,DIP-6,,"150mA 300mV@10mA,2.5mA 70V 6V 1.45V DC DIP-6 Transistor, Photovoltaic Output Optoisolators RoHS",yes,5,1,1,0.0837,0.42,https://www.lcsc.com/product-detail/C10811.html
+3,C51118,AP2112K-3.3TRG1,DIODES,SOT-25-5,,"3.3V Positive Fixed SOT-25-5 Voltage Regulators - Linear, Low Drop Out (LDO) Regulators RoHS",yes,5,5,5,0,0,https://www.lcsc.com/product-detail/C51118.html
+4,C15850,CL21A106KAYNNNE,Samsung Electro-Mechanics,805,,10uF ±10% 25V Ceramic Capacitor X5R 0805,yes,20,20,20,0,0,https://www.lcsc.com/product-detail/C15850.html
+5,C4944014,12M 16PF 50PPM,SOSET,HC-49S-SMD-2P-Mini,,Crystal 12MHz ±50ppm 16pF HC-49S-SMD-2P-Mini,yes,10,10,10,0.0382,0.38,https://www.lcsc.com/product-detail/C4944014.html
+6,C561716,FN03N270J500PLG,PSA,201,,27pF ±5% 50V Ceramic Capacitor C0G 0201,yes,100,100,100,0.0012,0.12,https://www.lcsc.com/product-detail/C561716.html
+7,C21190,0603WAF1001T5E,UNI-ROYAL,603,,1kΩ ±1% 100mW 0603 Thick Film Resistor,yes,100,100,100,0.0033,0.33,https://www.lcsc.com/product-detail/C21190.html
+8,C14663,CC0603KRX7R9BB104,YAGEO,603,,100nF ±10% 50V Ceramic Capacitor X7R 0603,yes,50,50,50,0,0,https://www.lcsc.com/product-detail/C14663.html
+9,C25804,0603WAF1002T5E,UNI-ROYAL,603,,10kΩ ±1% 100mW 0603 Thick Film Resistor,yes,100,100,100,0.004,0.4,https://www.lcsc.com/product-detail/C25804.html
+10,C90039,Ra-02,Ai-Thinker,SMD-16P,,IPEX interface -141dBm SPI SMD-16P RF Transceiver Modules and Modems RoHS,yes,5,1,1,7.4885,37.44,https://www.lcsc.com/product-detail/C90039.html
+11,C5356059,CON-SMA-EDGE-S,RF Solutions,SMD,,SMD Coaxial Connector (RF) Assemblies RoHS,yes,2,1,1,4.2063,8.41,https://www.lcsc.com/product-detail/C5356059.html
+12,C20917,AO3400A,AOS,SOT-23,,N-Channel 30V Surface Mount SOT-23-3L,yes,25,5,5,0.0853,2.13,https://www.lcsc.com/product-detail/C20917.html
+13,C2933369,FRC0805F2200TS,FOJAN,805,,220Ω ±1% 125mW 0805 Thick Film Resistor,yes,100,100,100,0.004,0.4,https://www.lcsc.com/product-detail/C2933369.html
+14,C2909831,1N4007,YONGYUTAI,SMA,,Diode Independent 1kV 1A Surface Mount SMA,yes,50,50,50,0.0087,0.44,https://www.lcsc.com/product-detail/C2909831.html
+15,C3253727,SPL07-003,Goertek,SMD-10P,,"30Kpa~1.1bar SMD-10P Pressure Sensors, Transducers RoHS",yes,6,1,1,0.8817,5.29,https://www.lcsc.com/product-detail/C3253727.html
+16,C967633,LSM6DS3TR-C,ST,LGA-14(2.5x3),,LGA-14(2.5x3) IMUs (Inertial Measurement Units) RoHS,yes,6,1,1,1.5274,9.16,https://www.lcsc.com/product-detail/C967633.html
+17,C110926,LIS2DH12TR,ST,LGA-12(2x2),,LGA-12(2x2) Accelerometers RoHS,yes,6,1,1,0.9328,5.6,https://www.lcsc.com/product-detail/C110926.html
+18,C2655092,A3G4250DTR,ST,TFLGA-16,,TFLGA-16 Gyroscopes RoHS,yes,6,1,1,1.8523,11.11,https://www.lcsc.com/product-detail/C2655092.html
+19,C165948,TYPE-C-31-M-12,Korean Hroparts Elec,SMD,,USB-C (USB TYPE-C) Receptacle Connector 16 Position Surface Mount,yes,10,5,5,0.1724,1.72,https://www.lcsc.com/product-detail/C165948.html
+20,C55098610,HRC0805F5101FNTN,HWA CHN,805,,125mW 5.1kΩ 150V Thick Film Resistor ±1% ±100ppm/℃ 0805 Chip Resistor - Surface Mount ,yes,100,100,100,0.0012,0.12,https://www.lcsc.com/product-detail/C55098610.html
+21,C318884,TS-1187A-B-A-B,XKB Connection,"SMD-4P,5.1x5.1mm",,Tactile Switch SPST 160gf 1.5mm 5.1mm x 5.1mm Surface Mount,yes,20,20,20,0.0207,0.41,https://www.lcsc.com/product-detail/C318884.html
+22,C2286,KT-0603R,Hubei KENTO Elec,603,,Red 645nm LED Indication - Discrete 2.4V 0603,yes,100,100,100,0.0075,0.75,https://www.lcsc.com/product-detail/C2286.html
+23,C2287,KT-0603Y,Hubei KENTO Elec,603,,Yellow 596nm LED Indication - Discrete 2.4V 0603,yes,50,50,50,0.0108,0.54,https://www.lcsc.com/product-detail/C2287.html
+24,C2297,KT-0805G,Hubei KENTO Elec,805,,Emerald Green 525nm LED Indication - Discrete 2.6V~3.1V 0805,yes,50,50,50,0.0165,0.83,https://www.lcsc.com/product-detail/C2297.html
+25,C2933198,FRC0603F3300TS,FOJAN,603,,330Ω ±1% 100mW 0603 Thick Film Resistor,yes,100,100,100,0.0027,0.27,https://www.lcsc.com/product-detail/C2933198.html
+26,C55014110,SMD-0955-05-27,S&S,"SMD,9x9mm",,"Active Buzzer (Built-in Driving Circuit) 2.7kHz 5V Electromagnetic SMD,9x9mm Alarms, Buzzers, and Sirens RoHS",yes,6,1,1,0.1983,1.19,https://www.lcsc.com/product-detail/C55014110.html
+27,C39843328,RP2354B,Raspberry Pi,QFN-80-EP(10x10),,ARM Cortex-M33 32 Bit 150MHz QFN-80-EP(10x10) Microcontrollers ,yes,6,1,1,1.5799,9.48,https://www.lcsc.com/product-detail/C39843328.html
+28,C41367225,BSMD1206C-1300T,BHFUSE,1206,,3A 72V Fuse Surface Mount 1206,yes,30,10,10,0.0575,1.73,https://www.lcsc.com/product-detail/C41367225.html
+29,C176959,AP2210K-3.3TRG1,DIODES,SOT-23-5,,"3.3V Positive Fixed SOT-23-5 Voltage Regulators - Linear, Low Drop Out (LDO) Regulators RoHS",yes,5,5,5,0.1912,0.96,https://www.lcsc.com/product-detail/C176959.html
+30,C2907002,FRC0603F1001TS,FOJAN,603,,1kΩ ±1% 100mW 0603 Thick Film Resistor,yes,100,100,100,0.0028,0.28,https://www.lcsc.com/product-detail/C2907002.html
+31,C23848,MBR0520LT1G,onsemi,SOD-123,,Diode 20V 500mA Surface Mount SOD-123,yes,50,5,5,0.084,4.2,https://www.lcsc.com/product-detail/C23848.html
+32,C29266,CL05A105KO5NNNC,Samsung Electro-Mechanics,402,,1uF ±10% 16V Ceramic Capacitor X5R 0402,yes,50,50,50,0.0082,0.41,https://www.lcsc.com/product-detail/C29266.html
+33,C49441431,JBL-102010052,JBL,SMD,,-40℃~+85℃ Push-Push 1.8mm Connector and Ejector MicroSD Card (TF Card) SMD PC Card Sockets RoHS,yes,5,5,5,0.0874,0.44,https://www.lcsc.com/product-detail/C49441431.html
+34,C500019,DB127V-5.0-2P-BU-S,DORABO,"Through Hole,P=5mm",,2 Position Wire to Board Terminal Block Through Hole 5mm,yes,50,5,5,0.1264,6.32,https://www.lcsc.com/product-detail/C500019.html
+Total Components Cost - $127,Tax and Shipping included in price shown,,,,,,,,,,,,
+PCB Cost - $160,Tax and Shipping included in price shown,,,,,,,,,,,,
+Manufaturing Tools Cost - $123,Tax and Shipping included in price shown,,,,,,,,,,,,
+,Soldering Iron and Heat Gun Station - $60,,,,,,,,,,,,
+,Solder Paste - $15,,,,,,,,,,,,
+,Flux - $15,,,,,,,,,,,,
+,Helping Hands - $25,,,,,,,,,,,,
+Total Cost - $410,,,,,,,,,,,,,

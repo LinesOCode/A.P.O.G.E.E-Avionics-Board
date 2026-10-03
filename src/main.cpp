@@ -1,16 +1,13 @@
 #include <Arduino.h>
 #include <SPI.h>
-#include <hardware/watchdog.h>
-#include <hardware/sync.h>
-#include <hardware/clocks.h>
-#include <pico/multicore.h>
-#include <mbed.h>
+#include <Servo.h>
 #include <RadioLib.h>
 #include <SD.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 
+<<<<<<< HEAD
 
 // ========================== Deadlock Safety ================================
 
@@ -19,22 +16,32 @@ spin_lock_t *sensorBusLock;   // ONLY if multiple tasks on Core 0 need to share 
 spin_lock_t *storageBusLock;  // ONLY if multiple tasks on Core 1 need to share the standard SPI
 
 
+=======
+// Minimal watchdog stubs for single-core ARM builds (no Pico watchdog)
+static inline void watchdog_update() {}
+static inline void watchdog_enable(uint32_t ms, bool pause_on_debug) {}
+>>>>>>> e234959169edb00d9b9b414ebf627fc5142cae8a
 
 // ========================== PIN ASSIGNMENTS ================================
 // All four sensors share this SPI bus. Only one CS line may be low at a time.
 // Keep board wiring changes in this block.
-// Sensor bus: RP2040 SPI1 alternate pins.
-const uint8_t SENSOR_SPI_SCK_PIN = 10;
-const uint8_t SENSOR_SPI_MOSI_PIN = 11;
-const uint8_t SENSOR_SPI_MISO_PIN = 8;
+// Sensor bus: configurable SPI pins (change these variables if you re-wire)
+// Default mapping provided by user (GPIO numbers):
+// SCK = GPIO2, MOSI = GPIO3, MISO = GPIO4
+const uint8_t SENSOR_SPI_SCK_PIN = 2;
+const uint8_t SENSOR_SPI_MOSI_PIN = 3;
+const uint8_t SENSOR_SPI_MISO_PIN = 4;
 // Storage/radio bus: Arduino global SPI0 pins, separate from all sensors.
 const uint8_t STORAGE_SPI_SCK_PIN = 18;
 const uint8_t STORAGE_SPI_MOSI_PIN = 19;
 const uint8_t STORAGE_SPI_MISO_PIN = 16;
-const uint8_t BARO_SENSOR_CS = 5;  // Goertek SPL07-003 barometer
-const uint8_t IMU_SENSOR_CS = 6;   // ST LSM6DS3TR accelerometer + gyro
-const uint8_t ACCEL_SENSOR_CS = 7; // ST LIS2DH12TR accelerometer
-const uint8_t GYRO_SENSOR_CS = 2;  // ST A3G4250DTR gyro
+// Sensor chip-selects (changeable variables)
+// Provided mapping from user:
+// IMU CS GPIO5, Gyro CS GPIO8, Baro CS GPIO0, Accel CS GPIO1
+const uint8_t IMU_SENSOR_CS = 5;   // ST LSM6DS3TR accelerometer + gyro
+const uint8_t GYRO_SENSOR_CS = 8;  // ST A3G4250DTR gyro
+const uint8_t BARO_SENSOR_CS = 0;  // Goertek SPL07-003 barometer
+const uint8_t ACCEL_SENSOR_CS = 1; // ST LIS2DH12TR accelerometer
 const uint8_t MOSFET_ARM_INPUT_PIN = 12;
 const uint8_t DROGUE_PARACHUTE_GATE_PIN = 26;
 const uint8_t MAIN_PARACHUTE_GATE_PIN = 9;
@@ -66,7 +73,8 @@ const uint32_t TELEMETRY_PERIOD_MS = 50;
 const uint32_t SD_FLUSH_PERIOD_MS = 1000;
 const uint8_t INTER_RP_PACKET_MAGIC = 0xa7;
 
-arduino::MbedSPI sensorSPI(SENSOR_SPI_MISO_PIN, SENSOR_SPI_MOSI_PIN, SENSOR_SPI_SCK_PIN);
+// Use a dedicated SPI instance for sensors so pins can be remapped at runtime
+SPIClass sensorSPI;
 SPISettings sensor_spi(8000000, MSBFIRST, SPI_MODE0);
 SPISettings storage_spi(25000000, MSBFIRST, SPI_MODE0);
 File flightLog;
@@ -78,8 +86,7 @@ bool flashReady = false;
 uint32_t flashJedecId = 0;
 uint32_t lastSdFlushMs = 0;
 uint16_t interRpSequence = 0;
-spin_lock_t *telemetryLock;
-spin_lock_t *peripheralLock;
+// single-core build: no spinlocks or multicore usage
 
 struct FlightStatePacket {
   uint8_t magic;
@@ -95,8 +102,6 @@ struct FlightStatePacket {
   uint8_t checksum;
 };
 
-volatile FlightStatePacket telemetrySnapshot;
-volatile bool telemetrySnapshotReady = false;
 static void publishRemoteTelemetry(const FlightStatePacket &packet);
 
 static uint8_t packetChecksum(const FlightStatePacket &packet) {
@@ -108,7 +113,6 @@ static uint8_t packetChecksum(const FlightStatePacket &packet) {
 
 static uint32_t readW25q16JedecId() {
   uint8_t id[3];
-  uint32_t irqState = spin_lock_blocking(peripheralLock);
   SPI.beginTransaction(storage_spi);
   digitalWrite(W25Q16_FLASH_CS_PIN, LOW);
   SPI.transfer(0x9f);
@@ -117,7 +121,6 @@ static uint32_t readW25q16JedecId() {
   id[2] = SPI.transfer(0);
   digitalWrite(W25Q16_FLASH_CS_PIN, HIGH);
   SPI.endTransaction();
-  spin_unlock(peripheralLock, irqState);
   return (static_cast<uint32_t>(id[0]) << 16) |
          (static_cast<uint32_t>(id[1]) << 8) | id[2];
 }
@@ -130,35 +133,30 @@ static void initializeExternalMemory() {
   if (flashReady) {
     Serial.println("W25Q16 detected on core 0: external 16 Mbit SPI/QSPI flash");
   } else {
-    Serial.println("W25Q16 not detected; RP2040 onboard XIP flash is unchanged");
+    Serial.println("W25Q16 not detected; onboard flash is unchanged");
   }
 }
 
 static uint8_t spiRead8(uint8_t chipSelect, uint8_t reg) {
-  uint32_t irqState = spin_lock_blocking(peripheralLock);
   sensorSPI.beginTransaction(sensor_spi);
   digitalWrite(chipSelect, LOW);
   sensorSPI.transfer(reg | 0x80);
   uint8_t value = sensorSPI.transfer(0);
   digitalWrite(chipSelect, HIGH);
   sensorSPI.endTransaction();
-  spin_unlock(peripheralLock, irqState);
   return value;
 }
 
 static void spiWrite8(uint8_t chipSelect, uint8_t reg, uint8_t value) {
-  uint32_t irqState = spin_lock_blocking(peripheralLock);
   sensorSPI.beginTransaction(sensor_spi);
   digitalWrite(chipSelect, LOW);
   sensorSPI.transfer(reg & 0x7f);
   sensorSPI.transfer(value);
   digitalWrite(chipSelect, HIGH);
   sensorSPI.endTransaction();
-  spin_unlock(peripheralLock, irqState);
 }
 
 static void spiRead(uint8_t chipSelect, uint8_t reg, uint8_t *buffer, size_t length) {
-  uint32_t irqState = spin_lock_blocking(peripheralLock);
   sensorSPI.beginTransaction(sensor_spi);
   digitalWrite(chipSelect, LOW);
   sensorSPI.transfer(reg | 0x80 | (length > 1 ? 0x40 : 0));
@@ -166,7 +164,6 @@ static void spiRead(uint8_t chipSelect, uint8_t reg, uint8_t *buffer, size_t len
   sensorSPI.transfer(buffer, length);
   digitalWrite(chipSelect, HIGH);
   sensorSPI.endTransaction();
-  spin_unlock(peripheralLock, irqState);
 }
 
 enum SensorId : uint8_t { SENSOR_SPL07, SENSOR_LSM6, SENSOR_LIS2DH, SENSOR_A3G4250 };
@@ -313,19 +310,17 @@ class AltitudeKalman {
   const float measurementVariance_ = 2.5f;
 };
 
+
 class FinController {
  public:
-  FinController()
-      : fin1Servo(digitalPinToPinName(FIN_1_SERVO_SIGNAL_PIN)),
-        fin2Servo(digitalPinToPinName(FIN_2_SERVO_SIGNAL_PIN)),
-        fin3Servo(digitalPinToPinName(FIN_3_SERVO_SIGNAL_PIN)),
-        fin4Servo(digitalPinToPinName(FIN_4_SERVO_SIGNAL_PIN)) {}
+  FinController() {}
 
   void begin() {
-    for (uint8_t index = 0; index < 4; ++index) {
-      servo(index).period_ms(20);
-      servo(index).pulsewidth_us(1500);
-    }
+    fin1Servo.attach(FIN_1_SERVO_SIGNAL_PIN);
+    fin2Servo.attach(FIN_2_SERVO_SIGNAL_PIN);
+    fin3Servo.attach(FIN_3_SERVO_SIGNAL_PIN);
+    fin4Servo.attach(FIN_4_SERVO_SIGNAL_PIN);
+    setNeutral();
   }
 
   void disable() {
@@ -358,27 +353,27 @@ class FinController {
   }
 
   void setNeutral() {
-    for (uint8_t index = 0; index < 4; ++index) servo(index).pulsewidth_us(1500);
+    fin1Servo.writeMicroseconds(1500);
+    fin2Servo.writeMicroseconds(1500);
+    fin3Servo.writeMicroseconds(1500);
+    fin4Servo.writeMicroseconds(1500);
   }
 
   void writeAngle(uint8_t index, float correction) {
     correction = constrain(correction, -max_fin_correction_deg, max_fin_correction_deg);
-    servo(index).pulsewidth_us(static_cast<int>(1500.0f + correction * (400.0f / 90.0f)));
-  }
-
-  mbed::PwmOut &servo(uint8_t index) {
+    int pulse = static_cast<int>(1500.0f + correction * (400.0f / 90.0f));
     switch (index) {
-      case 0: return fin1Servo;
-      case 1: return fin2Servo;
-      case 2: return fin3Servo;
-      default: return fin4Servo;
+      case 0: fin1Servo.writeMicroseconds(pulse); break;
+      case 1: fin2Servo.writeMicroseconds(pulse); break;
+      case 2: fin3Servo.writeMicroseconds(pulse); break;
+      default: fin4Servo.writeMicroseconds(pulse); break;
     }
   }
 
-  mbed::PwmOut fin1Servo;
-  mbed::PwmOut fin2Servo;
-  mbed::PwmOut fin3Servo;
-  mbed::PwmOut fin4Servo;
+  Servo fin1Servo;
+  Servo fin2Servo;
+  Servo fin3Servo;
+  Servo fin4Servo;
 };
 
 extern Spl07 spl07;
@@ -460,10 +455,8 @@ static void sendFlightState(uint32_t nowMs, float pressure) {
   if (sensorHealthy[SENSOR_LIS2DH]) packet.sensorHealthMask |= 4;
   if (sensorHealthy[SENSOR_A3G4250]) packet.sensorHealthMask |= 8;
   packet.checksum = packetChecksum(packet);
-  uint32_t irqState = spin_lock_blocking(telemetryLock);
-  memcpy(const_cast<FlightStatePacket *>(reinterpret_cast<volatile const FlightStatePacket *>(&telemetrySnapshot)), &packet, sizeof(packet));
-  telemetrySnapshotReady = true;
-  spin_unlock(telemetryLock, irqState);
+  // Single-core: publish immediately
+  publishRemoteTelemetry(packet);
 }
 
 static void initializeStorageAndTelemetry() {
@@ -471,8 +464,6 @@ static void initializeStorageAndTelemetry() {
   pinMode(LORA_RADIO_CS_PIN, OUTPUT);
   digitalWrite(SD_CARD_CS_PIN, HIGH);
   digitalWrite(LORA_RADIO_CS_PIN, HIGH);
-
-  uint32_t irqState = spin_lock_blocking(peripheralLock);
   sdCardReady = SD.begin(25000000UL, SD_CARD_CS_PIN);
   if (sdCardReady) {
     flightLog = SD.open("flight.csv", FILE_WRITE);
@@ -481,32 +472,10 @@ static void initializeStorageAndTelemetry() {
       flightLog.println("time_ms,altitude_m,velocity_mps,roll_rad,pitch_rad,pressure_pa,flash_jedec");
     }
   }
-  spin_unlock(peripheralLock, irqState);
   if (!sdCardReady) Serial.println("MicroSD logging unavailable");
-
-  irqState = spin_lock_blocking(peripheralLock);
   int16_t radioState = loraRadio.begin(915.0, 125.0, 9, 5, 0x12, 17, 8, 0);
-  spin_unlock(peripheralLock, irqState);
   loraReady = radioState == RADIOLIB_ERR_NONE;
   if (!loraReady) Serial.println("RFM95W telemetry unavailable");
-}
-
-static void telemetryCore1() {
-  initializeStorageAndTelemetry();
-  for (;;) {
-    watchdog_update();
-    FlightStatePacket packet;
-    bool packetAvailable = false;
-    uint32_t irqState = spin_lock_blocking(telemetryLock);
-    if (telemetrySnapshotReady) {
-      memcpy(&packet, const_cast<const FlightStatePacket *>(reinterpret_cast<volatile const FlightStatePacket *>(&telemetrySnapshot)), sizeof(packet));
-      telemetrySnapshotReady = false;
-      packetAvailable = true;
-    }
-    spin_unlock(telemetryLock, irqState);
-    if (packetAvailable) publishRemoteTelemetry(packet);
-    delay(1);
-  }
 }
 
 static bool validVector(const Vector3 &value) {
@@ -578,10 +547,9 @@ void setup() {
   digitalWrite(FIN_4_POWER_GATE_PIN, LOW);
   digitalWrite(MISC_MOSFET_GATE_PIN, LOW);
   finController.begin();
-  sensorSPI.begin();
+  // initialize sensor SPI on configurable pins
+  sensorSPI.begin(SENSOR_SPI_SCK_PIN, SENSOR_SPI_MOSI_PIN, SENSOR_SPI_MISO_PIN);
   SPI.begin();
-  telemetryLock = spin_lock_init(spin_lock_claim_unused(true));
-  peripheralLock = spin_lock_init(spin_lock_claim_unused(true));
   initializeExternalMemory();
 
   if (!spl07.begin() || !configureLsm6() || !configureLis2dh() || !configureA3g4250()) {
@@ -603,7 +571,8 @@ void setup() {
   rollEstimate = 0.0f;
   pitchEstimate = 0.0f;
   lastUpdateMicros = micros();
-  multicore_launch_core1(telemetryCore1);
+  // Run telemetry on the same ARM core
+  initializeStorageAndTelemetry();
 }
 
 void loop() {
@@ -702,19 +671,15 @@ static void publishRemoteTelemetry(const FlightStatePacket &packet) {
                               packet.pressurePa, packet.sensorHealthMask);
   if (recordLength <= 0 || recordLength >= static_cast<int>(sizeof(record))) return;
   if (sdCardReady) {
-    uint32_t irqState = spin_lock_blocking(peripheralLock);
     flightLog.println(record);
     if (packet.timestampMs - lastSdFlushMs >= SD_FLUSH_PERIOD_MS) {
       flightLog.flush();
       lastSdFlushMs = packet.timestampMs;
     }
-    spin_unlock(peripheralLock, irqState);
   }
   static uint32_t lastRadioTransmissionMs = 0;
   if (loraReady && packet.timestampMs - lastRadioTransmissionMs >= TELEMETRY_PERIOD_MS) {
-    uint32_t irqState = spin_lock_blocking(peripheralLock);
     loraRadio.transmit(record);
-    spin_unlock(peripheralLock, irqState);
     lastRadioTransmissionMs = packet.timestampMs;
   }
 }

@@ -20,11 +20,19 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
+<<<<<<< HEAD
             "executable": "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/.pio/build/rpipico2/firmware.elf",
             "projectEnvName": "rpipico2",
             "toolchainBinDir": "C:/Users/maahi/.platformio/packages/toolchain-rp2040-earlephilhower/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "svdPath": "C:/Users/maahi/.platformio/platforms/raspberrypi@src-ff76a3915224135aafad379817f41edd/misc/svd/rp2350.svd",
+=======
+            "executable": "/Users/mkhatiwala/VSCode/Avionics-Board/.pio/build/pico/firmware.elf",
+            "projectEnvName": "pico",
+            "toolchainBinDir": "/Users/mkhatiwala/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "/Users/mkhatiwala/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
+>>>>>>> e234959169edb00d9b9b414ebf627fc5142cae8a
             "preLaunchTask": {
                 "type": "PlatformIO",
                 "task": "Pre-Debug"
@@ -34,21 +42,37 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
+<<<<<<< HEAD
             "executable": "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/.pio/build/rpipico2/firmware.elf",
             "projectEnvName": "rpipico2",
             "toolchainBinDir": "C:/Users/maahi/.platformio/packages/toolchain-rp2040-earlephilhower/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "svdPath": "C:/Users/maahi/.platformio/platforms/raspberrypi@src-ff76a3915224135aafad379817f41edd/misc/svd/rp2350.svd"
+=======
+            "executable": "/Users/mkhatiwala/VSCode/Avionics-Board/.pio/build/pico/firmware.elf",
+            "projectEnvName": "pico",
+            "toolchainBinDir": "/Users/mkhatiwala/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "/Users/mkhatiwala/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd"
+>>>>>>> e234959169edb00d9b9b414ebf627fc5142cae8a
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
+<<<<<<< HEAD
             "executable": "C:/Users/maahi/A.P.O.G.E.E-Avionics-Board/.pio/build/rpipico2/firmware.elf",
             "projectEnvName": "rpipico2",
             "toolchainBinDir": "C:/Users/maahi/.platformio/packages/toolchain-rp2040-earlephilhower/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "svdPath": "C:/Users/maahi/.platformio/platforms/raspberrypi@src-ff76a3915224135aafad379817f41edd/misc/svd/rp2350.svd",
+=======
+            "executable": "/Users/mkhatiwala/VSCode/Avionics-Board/.pio/build/pico/firmware.elf",
+            "projectEnvName": "pico",
+            "toolchainBinDir": "/Users/mkhatiwala/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "/Users/mkhatiwala/.platformio/platforms/raspberrypi/misc/svd/rp2040.svd",
+>>>>>>> e234959169edb00d9b9b414ebf627fc5142cae8a
             "loadMode": "manual"
         }
     ]
