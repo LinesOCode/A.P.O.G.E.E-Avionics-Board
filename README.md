@@ -11,10 +11,15 @@ A.P.O.G.E.E stands for Avionics, Power, Orientation, Guidance, and Electronics E
 This project is mainly based around the Raspberry Pi 2350 Series, i have designed this chip to work with the 2350B/2354B, as they have built in QSPI memory, and without it, you cannot upload the code. For the components, I wont go into extreme depth, but here is the most important things and what they are used for - 
 
 The ***MPU*** - Raspberry Pi 2354B
+
 The ***Accelerometer*** - LIS2DH12TR from STMicroelectronics
+
 The ***Barometer*** - SPL07-003 from Goertek
+
 The ***Gyroscope*** - A3G4250DTR from STMicroelectronics
+
 The ***Inertial Mesurement Unit*** - LSM6DS3TR-C from STMicroelectronics
+
 The ***Radio Transceiver*** - LoRa2 by Ai Thinker (Dont ask why the company has the word Ai in it, its one of the only ones that work)
 
 ### *Software*
