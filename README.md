@@ -10,17 +10,17 @@ A.P.O.G.E.E stands for Avionics, Power, Orientation, Guidance, and Electronics E
 
 This project is mainly based around the Raspberry Pi 2350 Series, i have designed this chip to work with the 2350B/2354B, as they have built in QSPI memory, and without it, you cannot upload the code. For the components, I wont go into extreme depth, but here is the most important things and what they are used for - 
 
-The ***MPU*** - Raspberry Pi 2354B
+The ***MPU*** - Raspberry Pi 2354B (Main Processing Unit, The Brains of the Avionics Board)
 
-The ***Accelerometer*** - LIS2DH12TR from STMicroelectronics
+The ***Accelerometer*** - LIS2DH12TR from STMicroelectronics (Sees how fast the rocket changes speed, and uses that to find the speed of the rocket)
 
-The ***Barometer*** - SPL07-003 from Goertek
+The ***Barometer*** - SPL07-003 from Goertek (Finds the hight of the rocket somehow idk man electronics are weird)
 
-The ***Gyroscope*** - A3G4250DTR from STMicroelectronics
+The ***Gyroscope*** - A3G4250DTR from STMicroelectronics (Finds the orientation of the rocket, so that we know if we are aiming straight at the ground or up at the sky)
 
-The ***Inertial Mesurement Unit*** - LSM6DS3TR-C from STMicroelectronics
+The ***Inertial Mesurement Unit*** - LSM6DS3TR-C from STMicroelectronics (Backup for the Accelerometer and Gyroscope, and also includes a temperature sensor, so I can collect data too!)
 
-The ***Radio Transceiver*** - LoRa2 by Ai Thinker (Dont ask why the company has the word Ai in it, its one of the only ones that work)
+The ***Radio Transceiver*** - LoRa2 by Ai Thinker (Dont ask why the company has the word Ai in it, its one of the only ones that work, It is used to send the telemetry data back to my computer)
 
 ### *Software*
 
