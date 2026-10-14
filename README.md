@@ -27,3 +27,8 @@ The ***Radio Transceiver*** - LoRa2 by Ai Thinker (Dont ask why the company has 
 ***Code*** - I coded this project in C++, mainly because of the speed and reliability it has when in a task such as this, and as a fair declaration, I did use AI to code this, as I have no idea on how to use or code those, and it would take a substantial amount of time to learn it, and I WILL add to the code in the future, at least until it is reliable, but as of this being written, I don't have the PCB, nor do i even have funding, so I cant even test the code.
 
 ***The Filter*** - For this, I am using an Extended Kalman Filter based code, mainly because of its perks in the aerospace field, and just how good it is a weighting the different data between the components.
+
+
+## ***The Schemaics Stuff***
+
+For the Schematics,
