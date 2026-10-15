@@ -48,3 +48,16 @@ This is what the final wire layout looks like, it has 4 layers, with this stack 
 <img width="893" height="675" alt="Screenshot 2026-10-14 214631" src="https://github.com/user-attachments/assets/faa6c435-2a32-4a0a-863d-07bc14c327a3" />
 
 This is what the final schematic is, it has lots of connections, so I did my best to keep it tidy by only using GlobalTags to connect pins/pads. There isnt much to explain here, unless I wanted to explain every connection, but at that point, I might as well just publish a book on it, I already gave you hardware specs, so yeah.
+
+
+
+
+#### Board Looks
+
+I gotta make the board look like it's *mine* yk? So I added some *personal touches* to make it something I'm super proud to look at, so here's what it'll look like!
+
+<img width="668" height="677" alt="Screenshot 2026-10-14 220647" src="https://github.com/user-attachments/assets/ba664771-06a2-4940-b751-87d880aac36a" />
+<img width="277" height="550" alt="Screenshot 2026-10-14 220719" src="https://github.com/user-attachments/assets/63ec0e57-d301-41c7-98c2-dfbc932c6200" />
+<img width="301" height="322" alt="Screenshot 2026-10-14 220738" src="https://github.com/user-attachments/assets/03971d0e-f2a5-437d-9770-02926c0408bd" />
+
+I want the board to be white because I think it just looks much cleaner, and makes it different from other boards, making it feel uniquely *mine* (and yours if you wanna build it!) All of the code and hardware specs will be here and free to use, as long as you give a hats-off to this project if you used it!
