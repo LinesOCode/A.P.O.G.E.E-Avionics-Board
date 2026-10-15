@@ -24,9 +24,11 @@ The ***Radio Transceiver*** - LoRa2 by Ai Thinker (Dont ask why the company has 
 
 ### *Software*
 
-***Code*** - I coded this project in C++, mainly because of the speed and reliability it has when in a task such as this, and as a fair declaration, I did use AI to code this, as I have no idea on how to use or code those, and it would take a substantial amount of time to learn it, and I WILL add to the code in the future, at least until it is reliable, but as of this being written, I don't have the PCB, nor do i even have funding, so I cant even test the code.
+***Code*** - I coded this project in C++, mainly because of the speed and reliability it has when in a task such as this, and as a fair declaration, I did use AI to code this, as I have no idea on how to use or code those, and it would take a substantial amount of time to learn it, and I WILL add to the code in the future, at least until it is reliable, but as of this being written, I don't have the PCB, nor do I even have funding, so I cant even test the code.
 
-***The Filter*** - For this, I am using an Extended Kalman Filter based code, mainly because of its perks in the aerospace field, and just how good it is a weighting the different data between the components. This hasn't been tuned yet, but when I get funding, and when the board has been built, i should be able to introduce it to my components.
+***The Filter*** - For this, I am using an Extended Kalman Filter based code, mainly because of its perks in the aerospace field, and just how good it is a weighting the different data between the components. This hasn't been tuned yet, but when I get funding, and when the board has been built, I should be able to introduce it to my components.
+
+***The Website*** - I plan on adding a website that reads the telemetry data from the board and shows all of the data in real time, along with graphs and models of the direction/vectors affecting it to show the forces acting upon the rocket. I haven't made the website yet, but when I get to tinkering around with the actual hardware, it'll be no. 1 on my priorities list
 
 
 ## ***The Schemaics/Wiring Stuff***
