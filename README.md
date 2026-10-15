@@ -36,6 +36,7 @@ The ***Radio Transceiver*** - LoRa2 by Ai Thinker (Dont ask why the company has 
 
  
 <img width="881" height="447" alt="Screenshot 2026-10-14 214444" src="https://github.com/user-attachments/assets/7f47c32a-2e68-4fcb-bed9-5e73da0097c6" />
+
 This is what the final wire layout looks like, it has 4 layers, with this stack up (front to back)  Active Components -> Ground Layer -> Power/Auxiliary Layer -> Passive Components. I added a few references to spacecraft, like including what was printed on the Golden Record, or like the "Made on Earth by Humans from the Tesla Roadster *SpaceX* sent up"
  
 
@@ -45,4 +46,5 @@ This is what the final wire layout looks like, it has 4 layers, with this stack 
 
  
 <img width="893" height="675" alt="Screenshot 2026-10-14 214631" src="https://github.com/user-attachments/assets/faa6c435-2a32-4a0a-863d-07bc14c327a3" />
+
 This is what the final schematic is, it has lots of connections, so I did my best to keep it tidy by only using GlobalTags to connect pins/pads. There isnt much to explain here, unless I wanted to explain every connection, but at that point, I might as well just publish a book on it, I already gave you hardware specs, so yeah.
